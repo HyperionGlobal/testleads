@@ -1,0 +1,22 @@
+{
+  "results": [
+    {
+      "screen": "dashboard",
+      "violations": []
+    },
+    {
+      "screen": "opportunities",
+      "violations": []
+    },
+    {
+      "screen": "sources",
+      "violations": []
+    },
+    {
+      "screen": "settings",
+      "violations": []
+    }
+  ],
+  "consoleErrors": [],
+  "mobileOverflow": false
+}

@@ -1,0 +1,275 @@
+generator client {
+ provider = "prisma-client-js"
+ engineType = "client"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+model User {
+ id String @id @default(cuid())
+ email String @unique
+ name String
+ passwordHash String
+ role String @default("USER")
+ sessionVersion Int @default(0)
+ createdAt DateTime @default(now())
+}
+model Company {
+ id String @id @default(cuid())
+ name String
+ normalizedName String @unique
+ domain String? @unique
+ industry String @default("Unknown")
+ location String @default("Unknown")
+ profile Json @default("{}")
+ demo Boolean @default(false)
+ verifiedAt DateTime?
+ facilities Facility[]
+ contacts Contact[]
+ opportunities Opportunity[] @relation("OpportunityCompanies")
+ createdAt DateTime @default(now())
+}
+model Facility {
+ id String @id @default(cuid())
+ name String
+ address String
+ companyId String
+ company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+ opportunities Opportunity[] @relation("OpportunityFacilities")
+ @@unique([companyId,address])
+}
+model Contact {
+ id String @id @default(cuid())
+ name String
+ title String
+ companyId String
+ company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+ email String? @unique
+ emailStatus String @default("Unknown")
+ linkedin String? @unique
+ phone String?
+ location String @default("Unknown")
+ department String @default("Unknown")
+ seniority String @default("Unknown")
+ reason String
+ confidence Int @default(0)
+ source String
+ verifiedAt DateTime?
+ opportunities Opportunity[] @relation("OpportunityContacts")
+ createdAt DateTime @default(now())
+}
+model Source {
+ id String @id @default(cuid())
+ name String
+ type String
+ url String?
+ industry String @default("All")
+ geography String @default("United States")
+ frequency Int @default(1440)
+ enabled Boolean @default(false)
+ status String @default("Not checked")
+ reliability Int @default(70)
+ lastChecked DateTime?
+ lastSuccess DateTime?
+ signals Signal[]
+ jobs Job[]
+ createdAt DateTime @default(now())
+}
+model SourceDocument {
+ id String @id @default(cuid())
+ url String @unique
+ title String
+ text String
+ sourceName String
+ publicationDate DateTime?
+ createdAt DateTime @default(now())
+ signals Signal[]
+ opportunities Opportunity[] @relation("OpportunityDocuments")
+}
+model Signal {
+ id String @id @default(cuid())
+ headline String
+ category String
+ companyName String
+ location String
+ summary String
+ facts Json
+ inference Json
+ materials Json
+ services Json
+ urgency String
+ projectSize String
+ confidence Int
+ evidence String
+ sourceId String?
+ source Source? @relation(fields:[sourceId],references:[id],onDelete:SetNull)
+ documentId String
+ document SourceDocument @relation(fields:[documentId],references:[id])
+ eventDate DateTime?
+ discoveredAt DateTime @default(now())
+ verifiedAt DateTime?
+ demo Boolean @default(false)
+ opportunities Opportunity[] @relation("OpportunitySignals")
+}
+model Opportunity {
+ id String @id @default(cuid())
+ name String
+ score Int
+ breakdown Json
+ priority String
+ stage String @default("New")
+ owner String @default("Unassigned")
+ location String
+ industry String
+ urgency String
+ projectSize String
+ estimatedValue String @default("Unknown — qualify before quoting")
+ reviewStatus String @default("Pending review")
+ duplicateOf String?
+ demo Boolean @default(false)
+ companies Company[] @relation("OpportunityCompanies")
+ facilities Facility[] @relation("OpportunityFacilities")
+ contacts Contact[] @relation("OpportunityContacts")
+ signals Signal[] @relation("OpportunitySignals")
+ materials Material[]
+ services Service[]
+ documents SourceDocument[] @relation("OpportunityDocuments")
+ campaigns Campaign[]
+ tags Tag[]
+ drafts OutreachDraft[]
+ activities Activity[]
+ notes Note[]
+ tasks Task[]
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+model Material {
+ id String @id @default(cuid())
+ name String @unique
+ opportunities Opportunity[]
+}
+model Service {
+ id String @id @default(cuid())
+ name String @unique
+ opportunities Opportunity[]
+}
+model Campaign {
+ id String @id @default(cuid())
+ name String @unique
+ description String
+ keywords Json
+ enabled Boolean @default(true)
+ opportunities Opportunity[]
+}
+model OutreachDraft {
+ id String @id @default(cuid())
+ opportunityId String
+ opportunity Opportunity @relation(fields:[opportunityId],references:[id],onDelete:Cascade)
+ tone String
+ content Json
+ status String @default("Pending approval")
+ approvedBy String?
+ approvedAt DateTime?
+ createdAt DateTime @default(now())
+}
+model Activity {
+ id String @id @default(cuid())
+ opportunityId String
+ opportunity Opportunity @relation(fields:[opportunityId],references:[id],onDelete:Cascade)
+ description String
+ actor String
+ createdAt DateTime @default(now())
+}
+model Note {
+ id String @id @default(cuid())
+ opportunityId String
+ opportunity Opportunity @relation(fields:[opportunityId],references:[id],onDelete:Cascade)
+ body String
+ author String
+ createdAt DateTime @default(now())
+}
+model Task {
+ id String @id @default(cuid())
+ opportunityId String
+ opportunity Opportunity @relation(fields:[opportunityId],references:[id],onDelete:Cascade)
+ title String
+ dueAt DateTime?
+ done Boolean @default(false)
+}
+model Tag {
+ id String @id @default(cuid())
+ name String @unique
+ opportunities Opportunity[]
+}
+model SavedSearch {
+ id String @id @default(cuid())
+ name String
+ filters Json
+ createdAt DateTime @default(now())
+}
+model Import {
+ id String @id @default(cuid())
+ name String
+ total Int
+ created Int
+ duplicates Int
+ errors Json
+ createdAt DateTime @default(now())
+}
+model Export {
+ id String @id @default(cuid())
+ format String
+ actor String
+ count Int
+ createdAt DateTime @default(now())
+}
+model Suppression {
+ id String @id @default(cuid())
+ value String @unique
+ reason String
+ createdAt DateTime @default(now())
+}
+model Setting {
+ key String @id
+ value Json
+}
+model ScoringRule {
+ key String @id
+ weight Int
+}
+model AuditLog {
+ id String @id @default(cuid())
+ actor String
+ action String
+ entity String
+ details Json @default("{}")
+ createdAt DateTime @default(now())
+}
+model Job {
+ id String @id @default(cuid())
+ sourceId String?
+ source Source? @relation(fields:[sourceId],references:[id],onDelete:SetNull)
+ status String @default("Queued")
+ attempts Int @default(0)
+ maxAttempts Int @default(3)
+ runAt DateTime @default(now())
+ lockedAt DateTime?
+ error String?
+ result Json?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+model Usage {
+ id String @id @default(cuid())
+ provider String
+ tokens Int @default(0)
+ calls Int @default(1)
+ costUsd Float?
+ createdAt DateTime @default(now())
+}
+model RateLimit {
+ key String @id
+ count Int @default(1)
+ resetAt DateTime
+}
